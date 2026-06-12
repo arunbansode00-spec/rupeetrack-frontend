@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #0F172A;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 768px) {
+  body {
+    background: linear-gradient(135deg, #4338CA 0%, #7C3AED 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  #root {
+    width: 390px;
+    height: 844px;
+    background: #F8FAFC;
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow:
+      0 0 0 10px #1a1a2e,
+      0 0 0 13px #2d2d44,
+      0 50px 100px rgba(0,0,0,0.5),
+      0 20px 40px rgba(0,0,0,0.3);
+  }
+  #root::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 26px;
+    background: #1a1a2e;
+    border-radius: 0 0 18px 18px;
+    z-index: 9999;
+  }
+}
+
+@media (max-width: 767px) {
+  body { background: #F8FAFC; }
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #F8FAFC;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+}
+
+button   { font-family: 'Poppins', sans-serif; cursor: pointer; }
+input, textarea { font-family: 'Poppins', sans-serif; }
+::-webkit-scrollbar { width: 0px; }
+
+@keyframes fadeInUp    { from { opacity:0; transform:translateY(20px); }  to { opacity:1; transform:translateY(0); } }
+@keyframes fadeInDown  { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn      { from { opacity:0; }                               to { opacity:1; } }
+@keyframes slideInRight{ from { opacity:0; transform:translateX(30px); }  to { opacity:1; transform:translateX(0); } }
+@keyframes scaleIn     { from { opacity:0; transform:scale(0.88); }        to { opacity:1; transform:scale(1); } }
+@keyframes scaleInBounce {
+  0%   { opacity:0; transform:scale(0.7); }
+  60%  { opacity:1; transform:scale(1.06); }
+  100% {            transform:scale(1); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes progressFill { from { width: 0%; } }
+@keyframes fabPop {
+  0%   { transform:scale(0) rotate(-45deg); opacity:0; }
+  60%  { transform:scale(1.15) rotate(5deg); }
+  100% { transform:scale(1)    rotate(0deg); opacity:1; }
+}
+
+.animate-fadeInUp     { animation: fadeInUp      0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-fadeInDown   { animation: fadeInDown     0.4s  ease both; }
+.animate-fadeIn       { animation: fadeIn         0.35s ease both; }
+.animate-slideInRight { animation: slideInRight   0.4s  cubic-bezier(.22,.68,0,1.2) both; }
+.animate-scaleIn      { animation: scaleIn        0.35s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-scaleInBounce{ animation: scaleInBounce  0.5s  cubic-bezier(.22,.68,0,1.2) both; }
+.fab                  { animation: fabPop         0.5s  cubic-bezier(.22,.68,0,1.2) 0.3s both; }
+
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger > *:nth-child(7) { animation-delay: 0.35s; }
+
+.btn-press { transition: transform 0.12s ease; }
+.btn-press:active { transform: scale(0.95) !important; }
+
+.card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important; }
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.progress-bar { animation: progressFill 1s cubic-bezier(.22,.68,0,1.2) both; }
