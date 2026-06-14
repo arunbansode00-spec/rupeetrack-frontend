@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { requestPermission } from "../notifications";
 
 function exportToCSV(expenses) {
   const headers = ["Date","Type","Category","Label","Amount"];
@@ -174,9 +175,23 @@ const clearData = () => {
         </Section>
 
         <Section title="Preferences">
+          // Find this row and update it:
           <Row emoji="🔔" label="Budget Alerts"
             right={
-              <div onClick={e=>{e.stopPropagation();setNotifications(!notifications);}} style={{ width:44, height:24, background:notifications?"#4F46E5":"#E2E8F0", borderRadius:12, position:"relative", transition:"background 0.2s", cursor:"pointer", flexShrink:0 }}>
+              <div onClick={async (e) => {
+                e.stopPropagation();
+                if (!notifications) {
+                  const granted = await requestPermission();
+                  setNotifications(granted);
+                } else {
+                  setNotifications(false);
+                }
+              }} style={{
+                width:44, height:24,
+                background: notifications ? "#4F46E5" : "#E2E8F0",
+                borderRadius:12, position:"relative",
+                transition:"background 0.2s", cursor:"pointer", flexShrink:0,
+              }}>
                 <div style={{ position:"absolute", top:2, left:notifications?22:2, width:20, height:20, background:"#fff", borderRadius:"50%", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.2)" }} />
               </div>
             }

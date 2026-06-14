@@ -4,11 +4,17 @@ import Login      from "./screens/Login";
 import Dashboard  from "./screens/Dashboard";
 import AddExpense from "./screens/AddExpense";
 import Analytics  from "./screens/Analytics";
+import Transactions from "./screens/Transactions";
 import Budget     from "./screens/Budget";
 import Profile    from "./screens/Profile";
 import Admin      from "./screens/Admin";
 import BottomNav  from "./components/BottomNav";
 import * as api   from "./api";
+import {
+  requestPermission,
+  checkBudgetAlert,
+  notifyExpenseAdded,
+} from "./notifications";
 
 export default function App() {
   const [screen,        setScreen]   = useState("onboarding");
@@ -18,6 +24,7 @@ export default function App() {
   const [loading,       setLoading]  = useState(false);
   const [installPrompt, setInstall]  = useState(null);
   const [showInstall,   setShowInst] = useState(false);
+  const [editingTx,     setEditingTx]= useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("rt_token");
@@ -26,22 +33,7 @@ export default function App() {
       try {
         const parsedUser = JSON.parse(saved);
         setUser(parsedUser);
-        // FIX: refresh profile from server on every app load
-        // so is_admin is never stale from old localStorage cache
-        api.getProfile()
-          .then(freshUser => {
-            if (freshUser) {
-              localStorage.setItem("rt_user", JSON.stringify(freshUser));
-              setUser(freshUser);
-              setScreen(freshUser.is_admin ? "admin" : "dashboard");
-            } else {
-              setScreen(parsedUser.is_admin ? "admin" : "dashboard");
-            }
-          })
-          .catch(() => {
-            // If profile fetch fails, fall back to cached value
-            setScreen(parsedUser.is_admin ? "admin" : "dashboard");
-          });
+        setScreen(parsedUser.is_admin ? "admin" : "dashboard");
       } catch {
         localStorage.removeItem("rt_token");
         localStorage.removeItem("rt_user");
@@ -60,6 +52,13 @@ export default function App() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, [user]);
+
+  // Request notification permission after login
+  useEffect(() => {
+    if (user && !user.is_admin) {
+      requestPermission();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -94,7 +93,25 @@ export default function App() {
 
   const handleAddExpense = async (entry) => {
     const saved = await api.addExpense(entry);
-    setExpenses((prev) => [saved, ...prev]);
+    const newExpenses = [saved, ...expenses];
+    setExpenses(newExpenses);
+
+    // Notify expense added
+    notifyExpenseAdded(entry.label || entry.category, entry.amount, entry.type);
+
+    // Check budget after adding expense
+    if (entry.type === "expense") {
+      const newSpent = newExpenses
+        .filter(e => e.type === "expense")
+        .reduce((s, e) => s + Number(e.amount), 0);
+      checkBudgetAlert(newSpent, budget);
+    }
+  };
+
+  const handleEditExpense = async (entry) => {
+    await api.deleteExpense(entry.id);
+    const saved = await api.addExpense(entry);
+    setExpenses((prev) => [saved, ...prev.filter(e => e.id !== entry.id)]);
   };
 
   const handleDeleteExpense = async (id) => {
@@ -113,30 +130,48 @@ export default function App() {
     installPrompt.userChoice.then(() => { setInstall(null); setShowInst(false); });
   };
 
-  const showNav = !["onboarding", "login", "admin"].includes(screen);
+  const showNav = !["onboarding","login","admin"].includes(screen);
 
   return (
     <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh" }}>
       <div style={{ flex:1, overflowY:"auto", paddingBottom: showNav ? 72 : 0 }}>
         {screen === "onboarding" && <Onboarding onNavigate={setScreen} />}
         {screen === "login"      && <Login      onLogin={handleLogin} onSignup={handleSignup} onNavigate={setScreen} />}
-        {screen === "dashboard"  && <Dashboard  expenses={expenses} budget={budget} user={user} loading={loading} onNavigate={setScreen} onDelete={handleDeleteExpense} />}
-        {screen === "add"        && <AddExpense  onSave={handleAddExpense} onNavigate={setScreen} />}
+        {screen === "dashboard"  && (
+          <Dashboard
+            expenses={expenses}
+            budget={budget}
+            user={user}
+            loading={loading}
+            onNavigate={setScreen}
+            onDelete={handleDeleteExpense}
+            onEdit={(tx) => setEditingTx(tx)}
+          />
+        )}
+        {screen === "add" && (
+          <AddExpense
+            onSave={editingTx ? handleEditExpense : handleAddExpense}
+            onNavigate={setScreen}
+            editingTx={editingTx}
+            onClearEdit={() => setEditingTx(null)}
+          />
+        )}
+       {screen === "transactions" && (
+      <Transactions
+        expenses={expenses}
+        onNavigate={setScreen}
+        onDelete={handleDeleteExpense}
+        onEdit={(tx) => setEditingTx(tx)}
+      />
+        )}
         {screen === "analytics"  && <Analytics  expenses={expenses} budget={budget} />}
         {screen === "budget"     && <Budget      expenses={expenses} budget={budget} setBudget={handleSetBudget} />}
         {screen === "profile"    && <Profile     user={user} budget={budget} setBudget={handleSetBudget} onNavigate={setScreen} onLogout={handleLogout} />}
-        {/* FIX: guard admin screen — non-admin users can never reach it */}
-        {screen === "admin" && user?.is_admin && (
-          <Admin user={user} onNavigate={setScreen} onLogout={handleLogout} />
-        )}
-        {/* FIX: redirect non-admin who somehow lands on "admin" screen */}
-        {screen === "admin" && !user?.is_admin && (
-          <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <p style={{ color:"#EF4444", fontWeight:600 }}>Access denied. Admins only.</p>
-          </div>
-        )}
+        {screen === "admin"      && <Admin       user={user} onNavigate={setScreen} onLogout={handleLogout} />}
       </div>
+
       {showNav && <BottomNav current={screen} onNavigate={setScreen} />}
+
       {showInstall && (
         <div style={{ position:"fixed", bottom:80, left:16, right:16, maxWidth:358, margin:"0 auto", background:"linear-gradient(135deg,#4338CA,#6366F1)", borderRadius:20, padding:"14px 16px", display:"flex", alignItems:"center", gap:12, boxShadow:"0 8px 32px rgba(79,70,229,0.4)", zIndex:300 }}>
           <span style={{ fontSize:28 }}>📲</span>
